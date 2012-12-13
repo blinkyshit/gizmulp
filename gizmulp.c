@@ -25,17 +25,18 @@
 #define NUM_DATA (NUM_LED * 3)
 
 #define COLOR_LATCH_DURATION 501
-#define CLOCK_PERIOD 10
-#define CLOCK_PIN  3
-#define DATA_PIN   4
-#define CLOCK_PORT PORTD
-#define DATA_PORT  PORTD
+#define CLOCK_PERIOD         10
+#define CLOCK_PIN            3
+#define DATA_PIN             4
+#define CLOCK_PORT           PORTD
+#define DATA_PORT            PORTD
 
 typedef struct
 {
         uint8_t red, green, blue;
 } color_t;
 
+// some delay helper functions
 void delay_ms(int ms) 
 { 
     int i;
@@ -50,7 +51,7 @@ void delay_us(int us)
         _delay_us(1); 
 }
 
-void ledstick_setup(void)
+void setup(void)
 {
     // setting clock and data ports
     DDRD |= (1<<PD3)|(1<<PD4);
@@ -59,6 +60,7 @@ void ledstick_setup(void)
     DDRB |= (1<<PB5);
 }
 
+// Set the leds to a given color, using 3 uint8_t characters
 void set_led_bytes(uint8_t *leds)
 {
     uint8_t i, l, c, byte;
@@ -84,11 +86,13 @@ void set_led_bytes(uint8_t *leds)
      delay_us(COLOR_LATCH_DURATION);
 }
 
+// helper function to set the led color by passing in a color_t struct
 void set_led_color(color_t *color)
 {
     set_led_bytes((uint8_t*)color);
 }
 
+// helper function to pass in separate r, g, and b values
 void set_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
     uint8_t led[3];
@@ -98,6 +102,7 @@ void set_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
     set_led_bytes(led);
 }
 
+// flash yellow and purple startup sequence
 void startup(void)
 {
     int i;
@@ -112,6 +117,7 @@ void startup(void)
     }
 }
 
+// function that does a fast red fade in/out
 void panic(uint16_t t, color_t *c)
 {
     c->red =  (int)((sin((float)t / 50) + 1.0) * 127);
@@ -119,12 +125,7 @@ void panic(uint16_t t, color_t *c)
     c->green = 0;
 }
 
-void drink_done(uint16_t t, color_t *c)
-{
-    c->green =  (int)((sin((float)t / M_PI_2) + 1.0) * 127);
-    c->blue = c->red = 0;
-}
-
+// does an orange fade in fase out
 void orange(uint16_t t, color_t *c)
 {
     c->red   = (int)((sin((float)t / 30) + 1.0) * 127);
@@ -132,6 +133,7 @@ void orange(uint16_t t, color_t *c)
     c->blue  = 0;
 }
 
+// Given a function pointer from one of the two functions above, animate that function
 void plot_function(uint16_t count, uint16_t delay, void (*func)(uint16_t, color_t *))
 {
     uint16_t i;
@@ -145,6 +147,7 @@ void plot_function(uint16_t count, uint16_t delay, void (*func)(uint16_t, color_
     }
 }
 
+// fade from one color to another colors in steps with a delay of delay
 void fade(uint16_t steps, uint16_t delay, color_t *from, color_t *to)
 {
     float    rstep, gstep, bstep;
@@ -165,6 +168,7 @@ void fade(uint16_t steps, uint16_t delay, color_t *from, color_t *to)
     }
 }
 
+// Define some happy gizmulp colors
 #define NUM_GIZMULP_COLORS 9
 uint8_t gizmulp_colors[9][3] =
 {
@@ -183,18 +187,27 @@ int main(void)
 {
     uint8_t i, j;
 
-    ledstick_setup();
+    // Set everything up
+    setup();
     sei();
+
+    // show startup animation
     startup();
 
+    // main loop
     i = random() % NUM_GIZMULP_COLORS;
     for(;;)
     {
+        // pick a random color and fade to it from the current color
         do 
         {
             j = random() % NUM_GIZMULP_COLORS;
         } while(i == j && (abs(i - j < 3)));
+
+        // we've picked two colors, now fade between them
         fade(500, 5, (color_t *)gizmulp_colors[i], (color_t *)gizmulp_colors[j]);
+
+        // Save the current color
         i = j;
     }
 }
